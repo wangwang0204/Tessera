@@ -26,7 +26,7 @@ test('標題與建立筆記沿用原生 Note 模型', () => {
   assert.equal(book.canvasPositions[n.id].x,23);
 });
 test('儲存以原檔備份並拒絕外部覆寫', () => {
-  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'my-notes-electron-'));
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'tessera-test-electron-'));
   try {
     const file=path.join(dir,'notebook.json');
     const store=new NotebookStore(file);
@@ -38,7 +38,7 @@ test('儲存以原檔備份並拒絕外部覆寫', () => {
   } finally { fs.rmSync(dir,{recursive:true,force:true}); }
 });
 test('Swift 的位置陣列拖動後可保存並重新載入', () => {
-  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'my-notes-swift-positions-'));
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'tessera-swift-positions-'));
   try {
     const file=path.join(dir,'notebook.json');
     const id='BF4E971B-60E9-4CFB-A1AF-B0E6BBCDB4F8';
@@ -54,7 +54,7 @@ test('Swift 的位置陣列拖動後可保存並重新載入', () => {
   } finally { fs.rmSync(dir,{recursive:true,force:true}); }
 });
 test('編輯保留原主題，衝突內容另存副本且刪除可復原', () => {
-  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'my-notes-electron-'));
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'tessera-test-electron-'));
   try {
     const file=path.join(dir,'notebook.json'),store=new NotebookStore(file);
     let state=store.mutate('topic-create',{name:'研究'});
