@@ -20,8 +20,8 @@ function loadSyncConfig(customPath) {
   return {
     syncUrl: process.env.TESSERA_SYNC_URL || fileConfig.syncUrl || '',
     syncToken: process.env.TESSERA_SYNC_TOKEN || fileConfig.syncToken || '',
-    cfClientId: process.env.CF_ACCESS_CLIENT_ID || fileConfig.cfClientId || '',
-    cfClientSecret: process.env.CF_ACCESS_CLIENT_SECRET || fileConfig.cfClientSecret || '',
+    cfClientId: process.env.CF_ACCESS_CLIENT_ID || fileConfig.cfClientId || fileConfig.client_id || fileConfig['CF-Access-Client-Id'] || fileConfig['client-id'] || '',
+    cfClientSecret: process.env.CF_ACCESS_CLIENT_SECRET || fileConfig.cfClientSecret || fileConfig.client_secret || fileConfig['CF-Access-Client-Secret'] || fileConfig['client-secret'] || '',
     enabled: Boolean(process.env.TESSERA_SYNC_URL || fileConfig.syncUrl)
   };
 }
