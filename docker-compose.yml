@@ -1,0 +1,16 @@
+services:
+  tessera:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tessera-web:latest
+    container_name: tessera-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      - PORT=3000
+      - HOST=0.0.0.0
+      - DATA_FILE=/data/notebook.json
+    volumes:
+      - ./data:/data

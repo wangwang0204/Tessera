@@ -1,0 +1,29 @@
+{
+  "name": "tessera",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tessera Electron desktop app",
+  "main": "main.cjs",
+  "bin": {
+    "tessera": "bin/tessera.cjs"
+  },
+  "scripts": {
+    "start": "electron .",
+    "start:web": "node server.cjs",
+    "build:editor": "esbuild editor-source.js --bundle --format=iife --outfile=editor.bundle.js",
+    "test": "node --test test/*.test.cjs"
+  },
+  "devDependencies": {
+    "electron": "^45.3.2",
+    "esbuild": "^0.28.2"
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/lang-markdown": "^6.5.2",
+    "@codemirror/language": "^6.13.1",
+    "@codemirror/search": "^6.7.2",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.15",
+    "codemirror": "^6.0.2"
+  }
+}

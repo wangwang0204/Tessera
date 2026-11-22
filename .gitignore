@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Production build outputs
+dist/
+build/
+*.app
+*.zip
+
+# Runtime data & uploads
+data/
+*.db
+*.log
+
+# macOS & OS artifacts
+.DS_Store
+Thumbs.db
+
+# Local developer & agent journal (untracked)
+.dev/
+work/

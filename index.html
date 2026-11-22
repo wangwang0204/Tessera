@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'"><title>Tessera</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<div id="app" class="app">
+  <aside class="sidebar"><div class="brand"><b>N</b><strong>Tessera</strong></div><small>工作區</small><button class="nav active" data-view="canvas">▦　畫布</button><button class="nav" data-view="timeline">⌁　Timeline</button><button class="nav" data-view="master">☷　Master Notes</button></aside>
+  <div class="workspace"><header class="toolbar"><div><h1 id="page-title">畫布</h1><span id="page-meta"></span></div><div class="toolbar-actions"><button id="zoom-out" title="縮小畫布">−</button><span id="zoom-value">100%</span><button id="zoom-in" title="放大畫布">＋</button><button id="search-button" title="搜尋 (⌘F)">⌕</button><button id="new-button" class="primary">＋ 新增便利貼</button></div></header>
+    <section id="canvas-view" class="view canvas-scroll"><div id="canvas" class="canvas"></div></section>
+    <section id="timeline-view" class="view hidden"><div class="view-head"><div><h2>Timeline</h2><p id="event-count"></p></div><div class="controls"><label>年份 <input id="timeline-year" type="number" min="1" max="9999" placeholder="未設定"></label><select id="topic-filter" aria-label="主題範圍"></select><div class="segments"><button data-mode="compact" class="active">精簡</button><button data-mode="expanded">展開</button></div><button id="timeline-zoom-out" title="縮小時間軸">−</button><span id="timeline-zoom-value">100%</span><button id="timeline-zoom-in" title="放大時間軸">＋</button></div></div><div id="timeline-scroll" class="timeline-scroll"><div id="timeline"></div></div><div id="event-detail" class="event-detail hidden"></div></section>
+    <section id="master-view" class="view hidden"><div class="view-head"><div><h2>Master Notes</h2></div><span id="save-status" aria-live="polite"></span></div><div id="master-list" class="master-list"></div></section>
+    <section id="todos-view" class="view hidden"><div class="view-head"><div><h2>所有待辦</h2><p id="todo-count"></p></div></div><div id="todo-list" class="todo-list"></div></section>
+  </div>
+</div>
+<div id="floating" class="floating hidden"><header id="floating-header"><button id="floating-close" title="關閉懸浮視窗">×</button><strong id="floating-title"></strong><button id="floating-toggle" title="收合／展開">−</button></header><div id="floating-body"><textarea id="floating-editor" class="markdown-editor" spellcheck="false"></textarea></div></div>
+<dialog id="search-dialog"><div class="search-head"><input id="search-input" placeholder="搜尋便利貼內容…"><button id="search-close">×</button></div><div id="search-results"></div></dialog>
+<dialog id="topic-dialog"><div class="dialog-head"><h3>新增主題</h3><button class="dialog-close">×</button></div><input id="topic-name" placeholder="主題名稱"><button id="topic-create" class="primary">建立</button></dialog>
+<dialog id="color-dialog"><div class="dialog-head"><h3>筆記底色</h3><button class="dialog-close">×</button></div><div id="color-swatches"></div><label class="custom-color">自訂色彩 <input id="custom-color" type="color" value="#ffffff"></label></dialog>
+<div id="toast" role="status"></div>
+<script src="editor.bundle.js"></script><script src="timeline-layout.js"></script><script src="master-groups.js"></script><script src="canvas-align.js"></script><script src="note-header.js"></script><script src="web-adapter.js"></script><script src="renderer.js"></script>
+</body></html>
