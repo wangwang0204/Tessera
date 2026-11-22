@@ -86,5 +86,20 @@ class NotebookStore {
     this.book = book; this.digest = hash(next);
     return { book: structuredClone(book), digest: this.digest, result };
   }
+  saveBook(book) {
+    const shaped = ensureShape(book);
+    const saved = {
+      ...shaped,
+      positions: Object.entries(shaped.positions || {}).flat(),
+      canvasPositions: Object.entries(shaped.canvasPositions || {}).flat()
+    };
+    const next = Buffer.from(JSON.stringify(saved, null, 2) + '\n');
+    const temp = `${this.file}.${process.pid}.tmp`;
+    fs.writeFileSync(temp, next);
+    fs.renameSync(temp, this.file);
+    this.book = shaped;
+    this.digest = hash(next);
+    return { book: structuredClone(shaped), digest: this.digest };
+  }
 }
 module.exports = { NotebookStore };

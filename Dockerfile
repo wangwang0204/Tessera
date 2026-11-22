@@ -25,6 +25,7 @@ ENV NODE_ENV=production \
 
 # Copy server scripts and web assets
 COPY --from=builder /build/server.cjs ./
+COPY --from=builder /build/sync-merge.cjs ./
 COPY --from=builder /build/store.cjs ./
 COPY --from=builder /build/model.cjs ./
 COPY --from=builder /build/index.html ./

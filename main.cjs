@@ -3,7 +3,8 @@ const path = require('node:path');
 const os = require('node:os');
 const { NotebookStore } = require('./store.cjs');
 const { headerTitle } = require('./model.cjs');
-let store, mainWindow;
+const { SyncClient } = require('./sync-client.cjs');
+let store, mainWindow, syncClient;
 const floating = new Map();
 const dataPath = process.env.MY_NOTES_DATA_FILE || path.join(os.homedir(), 'Library', 'Application Support', 'Tessera', 'notebook.json');
 if (process.env.MY_NOTES_USER_DATA_DIR) app.setPath('userData', process.env.MY_NOTES_USER_DATA_DIR);
@@ -25,6 +26,7 @@ function protect(window) {
   });
 }
 function command(name) {
+  if (name === 'sync-now') { syncClient?.syncNow(); return; }
   let target = BrowserWindow.getFocusedWindow() || mainWindow;
   if (name === 'float-note') { if (target !== mainWindow && ![...floating.values()].includes(target)) target = mainWindow; target?.webContents.send('app:command', 'float'); return; }
   if (target !== mainWindow && ['new','new-topic','canvas','timeline','master','split','todos','search','restore'].includes(name)) { if (!mainWindow) main(); mainWindow.show(); mainWindow.focus(); target = mainWindow; }
@@ -79,7 +81,7 @@ function menu() {
   const item = (label, accelerator, action) => ({ label, accelerator, click: () => command(action) });
   const template = [
     { label: 'Tessera', submenu: [{ role: 'about' }, { role: 'hide' }, { role: 'quit' }] },
-    { label: '檔案', submenu: [item('新增便利貼', 'CmdOrCtrl+N', 'new'), item('新增主題', 'CmdOrCtrl+Shift+N', 'new-topic'), { label: '開啟懸浮便利貼', click: () => command('float-note') }, item('刪除選取的便利貼', 'CmdOrCtrl+W', 'delete'), { label:'還原最近刪除的便利貼', click:()=>command('restore') }] },
+    { label: '檔案', submenu: [item('新增便利貼', 'CmdOrCtrl+N', 'new'), item('新增主題', 'CmdOrCtrl+Shift+N', 'new-topic'), { label: '開啟懸浮便利貼', click: () => command('float-note') }, { type: 'separator' }, item('立即同步筆記', 'CmdOrCtrl+Shift+S', 'sync-now'), { type: 'separator' }, item('刪除選取的便利貼', 'CmdOrCtrl+W', 'delete'), { label:'還原最近刪除的便利貼', click:()=>command('restore') }] },
     { label: '編輯', submenu: [{ role: 'undo' }, { role: 'redo' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { type: 'separator' }, item('粗體', 'CmdOrCtrl+B', 'bold'), item('斜體', 'CmdOrCtrl+I', 'italic'), item('底線', 'CmdOrCtrl+U', 'underline'), item('刪除線', 'CmdOrCtrl+S', 'strike'), item('切換核取方塊', 'CmdOrCtrl+Shift+T', 'checkbox'), { type:'separator' }, item('筆記底色…', 'Alt+C', 'color'), item('套用上次使用的底色', 'Alt+Shift+C', 'repeat-color')] },
     { label: '檢視', submenu: [item('畫布', 'CmdOrCtrl+P', 'canvas'), { label: 'Timeline（⌘O）', click: () => command('timeline') }, item('Timeline（另一組快捷鍵）', 'CmdOrCtrl+2', 'timeline'), item('Master Notes', 'CmdOrCtrl+K', 'master'), item('所有待辦', 'CmdOrCtrl+T', 'todos'), item('Timeline／Master Notes 分割畫面', 'CmdOrCtrl+\\', 'split'), item('搜尋', 'CmdOrCtrl+F', 'search'), { label: '收合／展開便利貼（⌘R）', click: () => command('collapse') }, item('放大畫布', 'CmdOrCtrl+Plus', 'zoom-in'), item('縮小畫布', 'CmdOrCtrl+-', 'zoom-out'), item('放大時間軸', 'Ctrl+Plus', 'timeline-zoom-in'), item('縮小時間軸', 'Ctrl+-', 'timeline-zoom-out')] }
   ];
@@ -88,7 +90,14 @@ function menu() {
 app.whenReady().then(() => {
   try { store = new NotebookStore(dataPath); } catch (error) { require('electron').dialog.showErrorBox('無法開啟 Tessera 資料', error.message); app.quit(); return; }
   ipcMain.handle('notebook:snapshot', event => { allowedSender(event); return store.snapshot(); });
-  ipcMain.handle('notebook:mutate', (event, action, payload, digest) => { allowedSender(event); const next = store.mutate(action, payload, digest); broadcast(next); return next; });
+  ipcMain.handle('notebook:mutate', (event, action, payload, digest) => {
+    allowedSender(event);
+    const next = store.mutate(action, payload, digest);
+    broadcast(next);
+    syncClient?.scheduleDebouncedSync(1500);
+    return next;
+  });
+  ipcMain.handle('notebook:sync-now', () => syncClient?.syncNow());
   ipcMain.handle('window:open-floating', (event, id) => { allowedSender(event); return openFloating(id); });
   ipcMain.handle('window:note-menu', (event, id) => {
     allowedSender(event);
@@ -127,6 +136,8 @@ app.whenReady().then(() => {
     broadcast(store.mutate('floating', { id, position: { ...previous, ...window.getBounds(), collapsed: next, expandedContentHeight: next ? bounds.height : restoredHeight, open: true } }));
     window.focus();
   });
+  syncClient = new SyncClient(store, snapshot => broadcast(snapshot));
+  syncClient.startAutoSync(60000);
   menu(); main();
   app.on('activate', () => { if (!mainWindow) main(); });
 });

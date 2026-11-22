@@ -168,6 +168,7 @@
     },
     moveFloating: function () {},
     collapseFloating: async function () {},
+    syncNow: async function () { return { status: 'in-sync' }; },
     mainCommand: function (command) {
       emitCommand(command);
     },

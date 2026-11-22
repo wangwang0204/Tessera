@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { NotebookStore } = require('./store.cjs');
+const { mergeNotebooks } = require('./sync-merge.cjs');
 
 function resolveDefaultDataPath() {
   if (process.env.MY_NOTES_DATA_FILE) return process.env.MY_NOTES_DATA_FILE;
@@ -103,6 +104,61 @@ function createServerApp({ dataPath } = {}) {
         res.end(JSON.stringify(next));
       } catch (err) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+      return;
+    }
+
+    if (pathname === '/api/sync' && req.method === 'POST') {
+      try {
+        const authHeader = req.headers['x-sync-token'] || req.headers['authorization'];
+        const requiredToken = process.env.TESSERA_SYNC_TOKEN;
+        if (requiredToken && authHeader !== requiredToken && authHeader !== `Bearer ${requiredToken}`) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Unauthorized: Invalid sync token' }));
+          return;
+        }
+
+        const body = await parseJsonBody(req);
+        const { clientDigest, clientBook, lastSyncDigest } = body;
+        const currentSnap = store.snapshot();
+
+        if (clientDigest && clientDigest === currentSnap.digest) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            status: 'in-sync',
+            digest: currentSnap.digest,
+            conflictCount: 0
+          }));
+          return;
+        }
+
+        const { mergedBook, conflictCount, changed } = mergeNotebooks(
+          currentSnap.book,
+          clientBook || { notes: [], topics: [], canvasPositions: {} },
+          lastSyncDigest,
+          currentSnap.digest
+        );
+
+        let finalDigest = currentSnap.digest;
+        let finalBook = currentSnap.book;
+
+        if (changed) {
+          const saved = store.saveBook(mergedBook);
+          finalDigest = saved.digest;
+          finalBook = saved.book;
+          broadcastSSE(saved);
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          status: changed ? (conflictCount > 0 ? 'merged-with-conflicts' : 'updated') : 'in-sync',
+          digest: finalDigest,
+          book: finalBook,
+          conflictCount
+        }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: err.message }));
       }
       return;

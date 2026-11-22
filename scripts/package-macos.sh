@@ -29,7 +29,7 @@ mkdir -p "$resources" "$source_dir/work"
 
 for file in package.json main.cjs preload.cjs index.html renderer.js web-adapter.js style.css \
   editor.bundle.js store.cjs model.cjs canvas-align.js master-groups.js \
-  note-header.js timeline-layout.js; do
+  note-header.js timeline-layout.js sync-client.cjs sync-merge.cjs; do
   ditto "$source_dir/$file" "$resources/$file"
 done
 ditto "$icon_source" "$app_path/Contents/Resources/Tessera.png"
