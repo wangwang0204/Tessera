@@ -43,6 +43,19 @@ test('Sync Engine - mergeNotebooks 演算法正確處理雙向變更與衝突', 
   assert.equal(res3.mergedBook.notes.length, 2);
   assert.ok(res3.mergedBook.notes.some(n => n.content === '# 工作\n## 原有筆記\n桌面改動內容'));
   assert.ok(res3.mergedBook.notes.some(n => n.source.includes('同步衝突副本')));
+
+  // 4. A client restarted after a one-sided edit must keep the persisted base
+  // and must not create a fresh conflict copy on the next sync.
+  const serverOneSided = structuredClone(baseBook);
+  const clientOneSided = structuredClone(baseBook);
+  clientOneSided.notes[0].content = '# 工作\n## 原有筆記\n桌面單邊改動';
+  clientOneSided.notes[0].updatedAt = '2026-11-23T01:10:00.000Z';
+  const res4 = mergeNotebooks(serverOneSided, clientOneSided, 'base', 'server', baseBook);
+  assert.equal(res4.conflictCount, 0);
+  assert.equal(res4.mergedBook.notes[0].content, clientOneSided.notes[0].content);
+  const res5 = mergeNotebooks(res4.mergedBook, res4.mergedBook, 'next', 'next', res4.mergedBook);
+  assert.equal(res5.conflictCount, 0);
+  assert.equal(res5.mergedBook.notes.length, 1);
 });
 
 test('Sync API - /api/sync 端點運作正常', async () => {

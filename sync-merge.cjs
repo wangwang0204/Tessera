@@ -6,7 +6,11 @@ const { isoNow, createNote } = require('./model.cjs');
  * - Handles concurrently updated notes (picks newer updatedAt, creates conflict copy for the other)
  * - Merges canvasPositions and topics safely
  */
-function mergeNotebooks(serverBook, clientBook, lastSyncDigest, currentServerDigest) {
+function sameNoteContent(a, b) {
+  return Boolean(a) && Boolean(b) && String(a.content || '') === String(b.content || '');
+}
+
+function mergeNotebooks(serverBook, clientBook, lastSyncDigest, currentServerDigest, baseBook) {
   // If digests match, they are already identical
   if (currentServerDigest === lastSyncDigest && clientBook.digest === currentServerDigest) {
     return { mergedBook: serverBook, conflictCount: 0, changed: false };
@@ -29,10 +33,12 @@ function mergeNotebooks(serverBook, clientBook, lastSyncDigest, currentServerDig
   // 2. Index notes
   const serverNotesMap = new Map(merged.notes.map(n => [n.id, n]));
   const clientNotesMap = new Map((clientBook.notes || []).map(n => [n.id, n]));
+  const baseNotesMap = new Map((baseBook?.notes || []).map(n => [n.id, n]));
 
   // 3. Process notes from client
   for (const [id, clientNote] of clientNotesMap.entries()) {
     const serverNote = serverNotesMap.get(id);
+    const baseNote = baseNotesMap.get(id);
 
     if (!serverNote) {
       // Note exists on client but not on server
@@ -47,7 +53,17 @@ function mergeNotebooks(serverBook, clientBook, lastSyncDigest, currentServerDig
       const serverContent = serverNote.content || '';
 
       if (clientContent !== serverContent) {
-        // Content changed concurrently!
+        // A real three-way merge can accept a one-sided change without making a
+        // conflict copy. The old implementation ignored its alleged base state,
+        // so reconnecting a client repeatedly duplicated notes.
+        if (baseNote && sameNoteContent(serverNote, baseNote)) {
+          Object.assign(serverNote, structuredClone(clientNote));
+          changed = true;
+          continue;
+        }
+        if (baseNote && sameNoteContent(clientNote, baseNote)) continue;
+
+        // Both sides changed since their common base (or no base is available).
         const clientTime = new Date(clientNote.updatedAt || 0).getTime();
         const serverTime = new Date(serverNote.updatedAt || 0).getTime();
 
@@ -71,6 +87,19 @@ function mergeNotebooks(serverBook, clientBook, lastSyncDigest, currentServerDig
           changed = true;
         }
       }
+    }
+  }
+
+  // A client-side deletion only wins when the server note has not changed since
+  // the common base. This deliberately favours retaining data when a base is
+  // unavailable or both sides changed.
+  for (const [id, baseNote] of baseNotesMap.entries()) {
+    if (clientNotesMap.has(id)) continue;
+    const serverNote = serverNotesMap.get(id);
+    if (serverNote && sameNoteContent(serverNote, baseNote)) {
+      merged.notes = merged.notes.filter(note => note.id !== id);
+      serverNotesMap.delete(id);
+      changed = true;
     }
   }
 

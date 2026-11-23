@@ -120,7 +120,7 @@ function createServerApp({ dataPath } = {}) {
         }
 
         const body = await parseJsonBody(req);
-        const { clientDigest, clientBook, lastSyncDigest } = body;
+        const { clientDigest, clientBook, lastSyncDigest, lastSyncedBook } = body;
         const currentSnap = store.snapshot();
 
         if (clientDigest && clientDigest === currentSnap.digest) {
@@ -137,7 +137,8 @@ function createServerApp({ dataPath } = {}) {
           currentSnap.book,
           clientBook || { notes: [], topics: [], canvasPositions: {} },
           lastSyncDigest,
-          currentSnap.digest
+          currentSnap.digest,
+          lastSyncedBook
         );
 
         let finalDigest = currentSnap.digest;

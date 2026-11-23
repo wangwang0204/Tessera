@@ -26,12 +26,35 @@ function loadSyncConfig(customPath) {
   };
 }
 
+function defaultSyncStatePath() {
+  return process.env.TESSERA_SYNC_STATE || path.join(os.homedir(), 'Library', 'Application Support', 'Tessera', 'sync-state.json');
+}
+
+function loadSyncState(filePath) {
+  try {
+    if (fs.existsSync(filePath)) return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch (err) {
+    console.warn('[SyncClient] Failed to parse sync state:', err.message);
+  }
+  return {};
+}
+
+function saveSyncState(filePath, state) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const temp = `${filePath}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, JSON.stringify(state));
+  fs.renameSync(temp, filePath);
+}
+
 class SyncClient {
   constructor(store, onUpdate, options = {}) {
     this.store = store;
     this.onUpdate = onUpdate || (() => {});
     this.config = options.config || loadSyncConfig(options.configPath);
-    this.lastSyncDigest = null;
+    this.statePath = options.statePath || defaultSyncStatePath();
+    const state = loadSyncState(this.statePath);
+    this.lastSyncDigest = state.lastSyncDigest || null;
+    this.lastSyncedBook = state.lastSyncedBook || null;
     this.isSyncing = false;
     this.timer = null;
     this.debounceTimer = null;
@@ -46,7 +69,8 @@ class SyncClient {
       const payload = JSON.stringify({
         clientDigest: snap.digest,
         clientBook: snap.book,
-        lastSyncDigest: this.lastSyncDigest
+        lastSyncDigest: this.lastSyncDigest,
+        lastSyncedBook: this.lastSyncedBook
       });
 
       const parsedUrl = new URL('/api/sync', this.config.syncUrl);
@@ -93,12 +117,16 @@ class SyncClient {
 
       if (resData.status === 'in-sync') {
         this.lastSyncDigest = resData.digest;
+        this.lastSyncedBook = snap.book;
+        saveSyncState(this.statePath, { lastSyncDigest: this.lastSyncDigest, lastSyncedBook: this.lastSyncedBook });
         return { status: 'in-sync', digest: resData.digest };
       }
 
       if (resData.book) {
         const saved = this.store.saveBook(resData.book);
-        this.lastSyncDigest = saved.digest;
+        this.lastSyncDigest = resData.digest;
+        this.lastSyncedBook = resData.book;
+        saveSyncState(this.statePath, { lastSyncDigest: this.lastSyncDigest, lastSyncedBook: this.lastSyncedBook });
         this.onUpdate(saved);
         return {
           status: resData.status,
@@ -143,4 +171,4 @@ class SyncClient {
   }
 }
 
-module.exports = { SyncClient, loadSyncConfig };
+module.exports = { SyncClient, loadSyncConfig, loadSyncState };
