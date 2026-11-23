@@ -1,5 +1,7 @@
 # Tessera
 
+> English guide: [README.en.md](README.en.md) · Repository plan: [docs/REPOSITORY-PLAN.md](docs/REPOSITORY-PLAN.md)
+
 Tessera 是一款專注於思考流與自由排版的雙模筆記應用程式（支援 macOS 桌面版與 Web 自託管版）。
 
 ---
